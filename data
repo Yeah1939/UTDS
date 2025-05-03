@@ -1,0 +1,17 @@
+import pygame
+import os
+from random import randint
+
+pygame.init()
+
+FPS = 60
+
+YELLOW = (200,100,50)
+BLUE = (0,0,255)
+RED = (255,0,0)
+GREEN = (0,255,0)
+BLACK = (0,0,0)
+
+abs_path = os.path.abspath(__file__ + "/..")
+size_window = (500,600)
+size_background = (600,1000)
