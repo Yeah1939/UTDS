@@ -1,0 +1,28 @@
+from function import *
+
+window = pygame.display.set_mode(size_window)
+
+pygame.display.set_caption("UN Tower Defense")
+window.fill(BLACK)
+game = True
+font = pygame.font.Font(None,70)
+
+what_window = "menu"
+rect_start = pygame.Rect(size_window[0]//2-125,200,250,80)
+rect_end = pygame.Rect(size_window[0]//2-125,200,250,80)
+text_start = font.render("START",True,BLACK)
+text_end = font.render("EXIT",True,BLACK)
+
+
+while game:
+    events = pygame.event.get()
+
+    if what_window == "menu":
+        window.fill(BLACK)
+        pygame.draw.rect(window,YELLOW, rect_start)
+        pygame.draw.rect(window,YELLOW, rect_end)
+        window.blit(text_start,(rect_start.centerx - font.size("START")[0] // 2,rect_start.centery - font.size("START")[1] // 2))
+        window.blit(text_end,(rect_end.centerx - font.size("END")[0] // 2,rect_start.centery - font.size("START")[1] // 2))
+
+        clock.tick(FPS)
+        pygame.display.flip()
