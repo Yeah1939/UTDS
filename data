@@ -1,3 +1,4 @@
+
 import pygame
 import os
 from random import randint
@@ -13,5 +14,16 @@ GREEN = (0,255,0)
 BLACK = (0,0,0)
 
 abs_path = os.path.abspath(__file__ + "/..")
-size_window = (500,600)
-size_background = (600,1000)
+size_window = (1000,600)
+size_background = (700,600)
+size_tower = (22,20)
+size_cash = (50,50)
+
+
+map_image = pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","map.png")),size_window)
+cash_image = pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","cash.png")),size_cash)
+turret_image_list = [
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","turretlvl1.png")),size_tower),
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","turretlvl2.png")),size_tower),
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","turretlvl3.png")),size_tower)
+]
