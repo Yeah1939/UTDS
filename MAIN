@@ -6,23 +6,41 @@ pygame.display.set_caption("UN Tower Defense")
 window.fill(BLACK)
 game = True
 font = pygame.font.Font(None,70)
+clock = pygame.time.Clock()
 
 what_window = "menu"
-rect_start = pygame.Rect(size_window[0]//2-125,200,250,80)
-rect_end = pygame.Rect(size_window[0]//2-125,200,250,80)
+rect_start = pygame.Rect(size_window[0]//2-125, 200, 250, 80)
+rect_end = pygame.Rect(size_window[0]//2-125, 320, 250, 80)
+
 text_start = font.render("START",True,BLACK)
 text_end = font.render("EXIT",True,BLACK)
 
 
 while game:
-    events = pygame.event.get()
+    events = pygame.event.get() 
+
+
+
 
     if what_window == "menu":
         window.fill(BLACK)
         pygame.draw.rect(window,YELLOW, rect_start)
-        pygame.draw.rect(window,YELLOW, rect_end)
+        pygame.draw.rect(window,RED, rect_end)
         window.blit(text_start,(rect_start.centerx - font.size("START")[0] // 2,rect_start.centery - font.size("START")[1] // 2))
-        window.blit(text_end,(rect_end.centerx - font.size("END")[0] // 2,rect_start.centery - font.size("START")[1] // 2))
+        window.blit(text_end,(rect_end.centerx - font.size("END")[0] // 2,rect_end.centery - font.size("EXIT")[1] // 2))
 
-        clock.tick(FPS)
-        pygame.display.flip()
+        for event in events:
+                if event.type == pygame.QUIT:
+                    game = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if rect_start.collidepoint(event.pos):
+                        what_window = "game"
+                    elif rect_end.collidepoint(event.pos):
+                        game = False
+    if what_window == "game":
+        window.blit(map_image, (0, 0))
+        window.blit(cash_image, (957, 0))
+
+
+    clock.tick(FPS)
+    pygame.display.flip()
