@@ -2,7 +2,7 @@ from function import *
 
 window = pygame.display.set_mode(size_window)
 
-pygame.display.set_caption("UN Tower Defense")
+pygame.display.set_caption("Tower Defense Simulator")
 window.fill(BLACK)
 game = True
 font = pygame.font.Font(None,70)
