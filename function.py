@@ -8,6 +8,16 @@ class Tower(pygame.Rect):
         self.image_now = self.image
         self.image_count = 0
 
+    def tower_choose(Tower):
+        pass
+
+    
+# Заготовки для прокачки
+#турель лвл 1:5 урона за 1 секунду(250$) / лвл 2: 15 урона за 1 секунду (1000$) + возможность бачить теневих зомби / лвл 3: 45 урона за 1 секунду (4000$)
+#мортира лвл 1:25 урона за 3 секунди(550$)/ лвл 2: 100 урона за 3 секунди (2250$)/ лвл 3: 300 урона за 3 секунди (9999$)
+
+
+
 class Enemy(pygame.Rect):
     def __init__(self,x,y,width,height,image_list):
         super().__init__(x,y,width,height)
@@ -74,4 +84,4 @@ class Maps(pygame.Rect):
                         x -= 20
                     temp_map.append((x,y))
                     
-                    
+    
