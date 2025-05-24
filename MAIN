@@ -30,6 +30,7 @@ while game:
         window.blit(text_end,(rect_end.centerx - font.size("END")[0] // 2,rect_end.centery - font.size("EXIT")[1] // 2))
 
         for event in events:
+                
                 if event.type == pygame.QUIT:
                     game = False
                 elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -37,9 +38,26 @@ while game:
                         what_window = "game"
                     elif rect_end.collidepoint(event.pos):
                         game = False
+
+                #тут вибор башень і прокачка
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_e:
+                        pass
+                    if event.key == pygame.K_1:
+                        pass
+                    if event.key == pygame.K_2:
+                        pass
+                    if event.key == pygame.K_3:
+                        pass
+                
+            
     if what_window == "game":
         window.blit(map_image, (0, 0))
         window.blit(cash_image, (957, 0))
+
+        text_casht = font.render("0",True,BLACK)
+        rect_casht = pygame.Rect(size_window[0]//2-125, 27, 1275, 0)
+        window.blit(text_casht,(rect_casht.centerx - font.size("CASH")[0] // 2,rect_casht.centery - font.size("START")[1] // 2))
 
 
     clock.tick(FPS)
