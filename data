@@ -2,6 +2,7 @@
 import pygame
 import os
 from random import randint
+import time
 
 pygame.init()
 
@@ -12,68 +13,129 @@ BLUE = (0,0,255)
 RED = (255,0,0)
 GREEN = (0,255,0)
 BLACK = (0,0,0)
+WHITE = (255,255,255)
 
 abs_path = os.path.abspath(__file__ + "/..")
 size_window = (1000,600)
 size_background = (700,600)
-size_tower = (22,20)
+size_tower = (70,70)
 size_cash = (50,50)
+size_star = (25,25)
+size_zombie = (80,80)
+money = 500
 
 
 map_image = pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","map.png")),size_window)
 cash_image = pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","cash.png")),size_cash)
+star_image = pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","cash.png")),size_star)
+default_zombie_image = pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","default_zombie.png")),size_zombie )
+fast_zombie_image = pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","speed_zombie.png")),size_zombie)
+heavy_zombie_image = pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","heavy_zombie.png")),size_zombie )
+shadow_zombie_image = pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","shadow_zombie.png")),size_zombie )
+
 turret_image_list = [
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","turretlvl0.png")),size_tower),
     pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","turretlvl1.png")),size_tower),
     pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","turretlvl2.png")),size_tower),
     pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","turretlvl3.png")),size_tower)
 ]
 mortar_image_list = [
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","mortar0lvl.png")),size_tower),
     pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","mortar1lvl.png")),size_tower),
     pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","mortar2lvl.png")),size_tower),
     pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","mortar3lvl.png")),size_tower)
 ]
-temp_map = {
-    "LVL1":{
-        "map":[
+scout_image_list = [
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","goonerlvl0.png")),size_tower),
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","goonerlvl1.png")),size_tower),
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","goonerlvl2.png")),size_tower),
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","goonerlvl3.png")),size_tower)
+]
+minigunner_image_list = [
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","minigunnerlvl0.png")),size_tower),
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","minigunnerlvl1.png")),size_tower),
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","minigunnerlvl2.png")),size_tower),
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","minigunnerlvl3.png")),size_tower),
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","minigunnerlvl4.png")),size_tower)
+]
+farm_image_list = [
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","farmlvl1.png")),size_tower),
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","farmlvl2.png")),size_tower),
+    pygame.transform.scale(pygame.image.load(os.path.join(abs_path,"image","farmlvl3.png")),size_tower)
+]
+warden_image = turret_image_list[0]
+commander_image = turret_image_list[0]
+
+
+
+turret_icon = pygame.transform.scale(turret_image_list[0], (40, 40))
+mortar_icon = pygame.transform.scale(mortar_image_list[0], (40, 40))
+minigunner_icon = pygame.transform.scale(minigunner_image_list[0], (40, 40))
+scout_icon = pygame.transform.scale(scout_image_list[0], (40, 40))
+warden_icon = turret_icon
+commander_icon = turret_icon
+
+tower_icons = {
+    "scout": scout_icon,
+    "warden": turret_icon,
+    "turret": turret_icon,
+    "commander": turret_icon,
+    "mortar": mortar_icon,
+    "minigunner": minigunner_icon
+}
+
+tower_costs = {
+    "scout": 250,
+    "warden": 450,
+    "turret": 500,
+    "commander": 1000,
+    "mortar": 1250,
+    "minigunner": 1750
+}
+
+tower_images = {
+    "scout": scout_image_list[0],
+    "warden": turret_image_list[0],
+    "turret": turret_image_list[0],
+    "commander": turret_image_list[0],
+    "mortar": mortar_image_list[0],
+    "minigunner": minigunner_image_list[0]
+}
+
+
+maps = {
+    "LVL1": {
+        "map": [
             "00000000000000000000000000000000000000000000000000000000000",
             "00000000000000000000000000000000000000000000000000000000000",
             "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "11111111111111111111111111111111111111111111111111111111111",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
-            "00000000000000000000000000000000000000000000000000000000000",
+            "00000000000000000000111111111111111100000000000000000000000",
+            "00000000000000000000100000000000000100000000000000000000000",
+            "00000000000000000000100000000000000100000000000000000000000",
+            "00000000000000000000100000000000000100000000000000000000000",
+            "00000000000000000000100000000000000111111000000000000000000",
+            "00000000000000000000100000000000000000001000000000000000000",
+            "00000000000000000000100000000000000000001000000000000000000",
+            "00000000000000000000100000000000000000001000000000000000000",
+            "00000000000000000000100000000000000000001000000000000000000",
+            "00000000000000000000100000000000000000001000000000000000000",
+            "00000000000000000000100000000000000000001000000000000000000",
+            "00000000000000000000100000000000000000001000000000000000000",
+            "00000000000000000000100000000000000111111000000000000000000",
+            "00000000000000000000100000000000000100000000000000000000000",
+            "00000000000000000000100000000000000100000000000000000000000",
+            "11111100000000011111100000000000000100000000000000000000000",
+            "00000100000000010000000000000000000100000000000000000000000",
+            "00000100000000010000000000000000000100000000000000000000000",
+            "00000100000000010000000000000000000100000000000000000000000",
+            "00000111111111110000000000000000000100000000000000000000000",
+            "00000000000000000000000000000000000100000000000000000000000",
+            "00000000000000000000000000000000000100000000000000000000000",
+            "00000000000000000000000000000000000100000000000000000000000",
+            "00000000000000000000000000000000000100000000000000000000000",
+            "00000000000000000000000000000000000100000000000000000000000",
             "00000000000000000000000000000000000000000000000000000000000",
             "00000000000000000000000000000000000000000000000000000000000"
-            
-            
-            
-            
-            
-            
-            
-            ]
+        ]
     }
 }
