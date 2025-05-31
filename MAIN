@@ -1,12 +1,13 @@
 from function import *
 
 window = pygame.display.set_mode(size_window)
-
-pygame.display.set_caption("Tower Defense Simulator")
+pygame.display.set_caption("Tower Defense")
 window.fill(BLACK)
 game = True
 font = pygame.font.Font(None,70)
 clock = pygame.time.Clock()
+close_rect = None
+tower_buttons = []
 
 what_window = "menu"
 rect_start = pygame.Rect(size_window[0]//2-125, 200, 250, 80)
@@ -15,12 +16,166 @@ rect_end = pygame.Rect(size_window[0]//2-125, 320, 250, 80)
 text_start = font.render("START",True,BLACK)
 text_end = font.render("EXIT",True,BLACK)
 
+map_data = maps["LVL1"]["map"]
+path = generate_path_from_map(map_data)
+maps["LVL1"]["path"] = path
+
+zombie_types = {
+    "normal": {"image": default_zombie_image, "hp": 100, "speed": 1, "reward": 5},
+    "fast": {"image": fast_zombie_image, "hp": 75, "speed": 2, "reward": 5},
+    "heavy": {"image": heavy_zombie_image, "hp": 200, "speed": 0.75, "reward": 7},
+    "shadow": {"image": shadow_zombie_image, "hp": 120, "speed": 1.5, "reward": 10, "is_shadow": True}
+}
+
+selected_position = None  # Координаты, где кликнули для размещения
+show_tower_menu = False   # Показывать ли меню выбора
+tower_buttons = [] 
+
+
+current_wave = 0
+waiting_zombies = []
+spawn_delay = 800
+last_spawn_time = pygame.time.get_ticks()
+wave_delay = 3000
+wave_timer = pygame.time.get_ticks()
+waiting_for_next_wave = True
+screen = pygame.display.set_mode((1000, 600))
+tower_menu_active = False
+selected_tower = None
+upgrade_menu_open = False
+
+
+zombie_normal = Enemy(path[0][0], path[0][1], 80, 80, default_zombie_image, hp=100, speed=1, reward=5)
+zombie_fast = Enemy(path[0][0], path[0][1], 80, 80, fast_zombie_image, hp=75, speed=2, reward=5)
+zombie_heavy = Enemy(path[0][0], path[0][1], 80, 80, heavy_zombie_image, hp=200, speed=0.75, reward=7)
+zombie_shadow = Enemy(path[0][0], path[0][1], 80, 80, shadow_zombie_image, hp=120, speed=1.5, reward=10, is_shadow=True)
+
+for zomb in [zombie_normal, zombie_fast, zombie_heavy, zombie_shadow]:
+    zomb.set_path(path)
+
+maps["LVL1"]["zombies"] = []
+
+waves = [
+    [{"type": "normal", "count": 3}],
+    [{"type": "normal", "count": 5}],
+    [{"type": "normal", "count": 3}, {"type": "fast", "count": 3}],
+    [{"type": "normal", "count": 5}, {"type": "fast", "count": 5}]
+]
+
+
+
+tower_icons = {
+    "scout": scout_icon,
+    "warden": turret_icon,
+    "turret": turret_icon,
+    "commander": turret_icon,
+    "mortar": mortar_icon,
+    "minigunner": minigunner_icon
+}
+def load_wave(wave_index):
+    wave = waves[wave_index]
+    new_wave = []
+    for group in wave:
+        zombie_data = zombie_types[group["type"]]
+        for _ in range(group["count"]):
+            new_wave.append(zombie_data.copy())
+    return new_wave
+
+# Меню выбора башен
+#menu_active = False
+#menu_position = (0, 0)
+#menu_buttons = [
+#    {"rect": pygame.Rect(0, 0, 50, 50), "tower": "turret", "image": turret_icon},
+#    {"rect": pygame.Rect(0, 0, 50, 50), "tower": "mortar", "image": mortar_icon},
+#    {"rect": pygame.Rect(0, 0, 50, 50), "tower": "minigunner", "image": minigunner_icon},
+#    {"rect": pygame.Rect(0, 0, 50, 50), "tower": "scout", "image": scout_icon}
+#]
+towers = []
+
+def draw_tower_menu(surface, x, y):
+    global tower_buttons
+    width, height = 280, 300
+    menu_rect = pygame.Rect(x, y, width, height)
+    pygame.draw.rect(surface, BLACK, menu_rect)
+    pygame.draw.rect(surface, WHITE, menu_rect, 2)
+
+    font = pygame.font.SysFont(None, 24)
+    title = font.render("Выбор башни", True, WHITE)
+    surface.blit(title, (x + 10, y + 5))
+
+    close_rect = pygame.Rect(x + width - 25, y + 5, 20, 20)
+    pygame.draw.rect(surface, RED, close_rect)
+    close_text = font.render("X", True, WHITE)
+    surface.blit(close_text, (x + width - 20, y + 5))
+
+    tower_buttons = []
+    gap_x = 10
+    gap_y = 40
+    btn_w = 80
+    btn_h = 80
+    spacing = 10
+    names = list(tower_costs.keys())
+
+    for i in range(6):
+        col = i % 3
+        row = i // 3
+        btn_x = x + gap_x + col * (btn_w + spacing)
+        btn_y = y + gap_y + row * (btn_h + 40)
+
+        btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
+        pygame.draw.rect(surface, WHITE, btn_rect, 2)
+        icon = tower_icons[names[i]]
+        surface.blit(icon, (btn_x + 20, btn_y + 5))
+
+        cost_text = font.render(str(tower_costs[names[i]]), True, WHITE)
+        surface.blit(cost_text, (btn_x + 20, btn_y + 50))
+
+        tower_buttons.append((btn_rect, names[i]))
+
+    return close_rect
+
+def draw_upgrade_menu(surface, tower):
+        menu_width, menu_height = 300, 200
+        menu_x, menu_y = 100, 100  # позиция меню
+        pygame.draw.rect(surface, (30, 30, 30), (menu_x, menu_y, menu_width, menu_height))
+        pygame.draw.rect(surface, (255, 255, 255), (menu_x, menu_y, menu_width, menu_height), 3)
+
+        font = pygame.font.SysFont(None, 24)
+
+        # Кнопка закрытия (крестик)
+        close_rect = pygame.Rect(menu_x + menu_width - 30, menu_y + 10, 20, 20)
+        pygame.draw.rect(surface, (200, 50, 50), close_rect)
+        surface.blit(font.render("X", True, (255, 255, 255)), (menu_x + menu_width - 25, menu_y + 10))
+
+        # Кнопка прокачки
+        upgrade_rect = pygame.Rect(menu_x + 20, menu_y + menu_height - 50, menu_width - 40, 30)
+        pygame.draw.rect(surface, (50, 200, 50), upgrade_rect)
+        surface.blit(font.render("Прокачать", True, (255, 255, 255)), (menu_x + 100, menu_y + menu_height - 45))
+
+        # Текст прокачки
+        if tower.name in TOWER_UPGRADES and tower.level + 1 in TOWER_UPGRADES[tower.name]:
+            upgrade = TOWER_UPGRADES[tower.name][tower.level + 1]
+            desc = f"{tower.damage} урон → {upgrade['damage']} урона\n"
+            desc += f"{round(tower.speed, 2)}с → {round(upgrade['speed'], 2)}с\n"
+            desc += f"{tower.radius} → {upgrade['radius']}"
+            if upgrade.get("can_see_shadow", False) and not tower.can_see_shadow:
+                desc += "\n+видимость теневых"
+        else:
+            desc = "Макс. уровень"
+
+        # Вывод описания
+        for i, line in enumerate(desc.split('\n')):
+            surface.blit(font.render(line, True, (255, 255, 255)), (menu_x + 20, menu_y + 50 + i * 20))
+
+        return close_rect, upgrade_rect
+
+
+
+if upgrade_menu_open and selected_tower:
+    close_rect, upgrade_rect = draw_upgrade_menu(screen, selected_tower)
 
 while game:
-    events = pygame.event.get() 
-
-
-
+    events = pygame.event.get()
 
     if what_window == "menu":
         window.fill(BLACK)
@@ -30,35 +185,171 @@ while game:
         window.blit(text_end,(rect_end.centerx - font.size("END")[0] // 2,rect_end.centery - font.size("EXIT")[1] // 2))
 
         for event in events:
-                
-                if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT:
+                game = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if rect_start.collidepoint(event.pos):
+                    what_window = "game"
+                elif rect_end.collidepoint(event.pos):
                     game = False
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if rect_start.collidepoint(event.pos):
-                        what_window = "game"
-                    elif rect_end.collidepoint(event.pos):
-                        game = False
 
-                #тут вибор башень і прокачка
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_e:
-                        pass
-                    if event.key == pygame.K_1:
-                        pass
-                    if event.key == pygame.K_2:
-                        pass
-                    if event.key == pygame.K_3:
-                        pass
-                
-            
-    if what_window == "game":
+    elif what_window == "game":
+        current_time = pygame.time.get_ticks()
+
         window.blit(map_image, (0, 0))
         window.blit(cash_image, (957, 0))
 
-        text_casht = font.render("0",True,BLACK)
-        rect_casht = pygame.Rect(size_window[0]//2-125, 27, 1275, 0)
+        if show_tower_menu and selected_position:
+            close_rect = draw_tower_menu(window, *selected_position)
+
+
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                game = False
+
+
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_pos = pygame.mouse.get_pos()
+
+                if show_tower_menu:
+                    if close_rect and close_rect.collidepoint(mouse_pos):
+                        show_tower_menu = False
+                        selected_position = None
+                    else:
+                        for rect, name in tower_buttons:
+                            if rect.collidepoint(mouse_pos):
+                                if money >= tower_costs[name]:
+                                    money -= tower_costs[name]
+                                    tower_x = selected_position[0] - size_tower[0] // 2
+                                    tower_y = selected_position[1] - size_tower[1] // 2
+                                    if name == "turret":
+                                        image = turret_image_list[0]
+                                    elif name == "mortar":
+                                        image = mortar_icon
+                                    elif name == "minigunner":
+                                        image = minigunner_icon
+                                    elif name == "scout":
+                                        image = scout_image_list[0]
+                                    elif name == "warden":
+                                        image = turret_icon
+                                    elif name == "commander":
+                                        image = turret_icon
+
+                                    towers.append({
+                                        "type": name,
+                                        "pos": (tower_x, tower_y),
+                                        "image": image
+                                    })
+                                    show_tower_menu = False
+                                    selected_position = None
+                                else:
+                                    print("Недостаточно денег!")
+                else:
+                    clicked_tile = pygame.Rect((mouse_pos[0] // 50) * 50, (mouse_pos[1] // 50) * 50, 50, 50)
+                    occupied = any(
+                        pygame.Rect(t["pos"][0], t["pos"][1], size_tower[0], size_tower[1]).colliderect(clicked_tile)
+                        for t in towers
+                    )
+                    if not occupied:
+                        selected_position = clicked_tile.center
+                        show_tower_menu = True
+
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            pos = pygame.mouse.get_pos()
+            
+            if upgrade_menu_open:
+                if close_rect.collidepoint(pos):
+                    upgrade_menu_open = False
+                    selected_tower = None
+                elif upgrade_rect.collidepoint(pos) and selected_tower:
+                    selected_tower.upgrade()
+                    upgrade_menu_open = False
+                    selected_tower = None
+            else:
+                for tower in towers:
+                    if tower.is_clicked(pos):
+                        selected_tower = tower
+                        upgrade_menu_open = True
+
+
+
+
+
+
+
+
+
+
+        for tower in towers:
+            window.blit(tower["image"], tower["pos"])
+            #if tower["type"] == "turret":
+            #    window.blit(turret_icon, tower["pos"])
+            #if tower["type"] == "mortar":
+            #    window.blit(mortar_icon, tower["pos"])
+            #if tower["type"] == "minigunner":
+            #    window.blit(minigunner_icon, tower["pos"])
+            #if tower["type"] == "scout":
+            #    window.blit(scout_icon, tower["pos"])
+            #if tower["type"] == "warden":
+            #    window.blit(commando_icon, tower["pos"])  
+            #if tower["type"] == "commander":
+            #    window.blit(commando_icon, tower["pos"])
+            #Для этих двоих нету икинок поэтому нужно временно добавить им икноку обычной турели
+
+#        for btn in menu_buttons:
+#            if menu_active:
+#                pygame.draw.rect(window, WHITE, btn["rect"])
+#                window.blit(btn["image"], btn["rect"].topleft)
+
+        small_font = pygame.font.Font(None, 36)
+        display_wave = min(current_wave + int(not waiting_for_next_wave), len(waves))
+        wave_text = small_font.render(f"\u0412\u043e\u043b\u043d\u0430: {display_wave}", True, BLACK)
+        window.blit(wave_text, (880, 50))
+
+        if waiting_for_next_wave:
+            time_left = max(0, (wave_delay - (current_time - wave_timer)) // 1000)
+            timer_text = font.render(f"Слідуюча волна через: {time_left}с", True, RED)
+            text_rect = timer_text.get_rect(center=(size_window[0] // 2, 30))
+            window.blit(timer_text, text_rect)
+
+        text_casht = font.render(str(money), True, BLACK)
+        rect_casht = pygame.Rect(size_window[0]//2-190, 27, 1275, 0)
         window.blit(text_casht,(rect_casht.centerx - font.size("CASH")[0] // 2,rect_casht.centery - font.size("START")[1] // 2))
 
+        if waiting_for_next_wave and current_time - wave_timer >= wave_delay:
+            if current_wave < len(waves):
+                waiting_zombies = load_wave(current_wave)
+                current_wave += 1
+                waiting_for_next_wave = False
+
+        if not waiting_for_next_wave and waiting_zombies and current_time - last_spawn_time >= spawn_delay:
+            data = waiting_zombies.pop(0)
+            new_zombie = Enemy(
+                path[0][0], path[0][1],
+                80, 80,
+                data["image"],
+                data["hp"],
+                data["speed"],
+                data["reward"],
+                data.get("is_shadow", False)
+            )
+            new_zombie.set_path(path)
+            maps["LVL1"]["zombies"].append(new_zombie)
+            last_spawn_time = current_time
+
+        if not maps["LVL1"]["zombies"] and not waiting_zombies and not waiting_for_next_wave:
+            wave_timer = pygame.time.get_ticks()
+            waiting_for_next_wave = True
+
+        for zombie in maps["LVL1"]["zombies"]:
+            zombie.move()
+            zombie.draw(window)
+
+            if zombie.hp <= 0:
+                money += zombie.reward
+                maps["LVL1"]["zombies"].remove(zombie)
 
     clock.tick(FPS)
     pygame.display.flip()
